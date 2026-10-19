@@ -80,6 +80,15 @@ SHOTS=/tmp/shots npm test      # also save a screenshot of every step
 
 Each lesson ships a `VERIFY.md` that lists the facts to check against the original PDF: every number, section reference and paraphrase, plus the scripts that produced the practice answers. Read the original paper too. The lesson is a guide to the paper, not a replacement for it.
 
+Each lesson also has a script that recomputes its own arithmetic and every numeric practice answer, and fails if the lesson text disagrees:
+
+```
+node papers/02-sze-survey/experiments/numbers.cjs
+node papers/01-horowitz/experiments/practice-answers.cjs
+```
+
+The same check exists in `papers/03-roofline`, `papers/04-eyeriss` and `papers/05-tpu`.
+
 ## History
 
 This repository previously held a short text note on the Roofline model. That content is in the git history before the interactive course was added.
