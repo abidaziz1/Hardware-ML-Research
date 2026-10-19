@@ -281,6 +281,64 @@
     'memory-bound': {
       t: 'Memory-bound',
       d: 'A program whose speed is limited by how fast data arrives from memory. The arithmetic units sit idle waiting. Faster memory, or more reuse, helps it.'
+    },
+
+    /* ---------- dataflow and convolution vocabulary (used by several lessons) ---------- */
+    stride: {
+      t: 'Stride (U)',
+      d: 'How many positions the filter moves between two outputs. Stride 1 moves one pixel at a time. Stride 2 skips every other position and gives an output about half as wide.'
+    },
+    padding: {
+      t: 'Padding (P)',
+      d: 'Extra zeros added around the edge of the input so the filter can be centered on border pixels and the output keeps its size.'
+    },
+    'temporal-architecture': {
+      t: 'Temporal architecture',
+      d: 'A design, such as a CPU or GPU, where a central control unit drives many arithmetic units that read and write a shared memory hierarchy and do not pass data directly to each other.'
+    },
+    'spatial-architecture': {
+      t: 'Spatial architecture',
+      d: 'A design where a grid of processing elements, each with a little local memory, passes data directly to its neighbors. It supports dataflow processing and cuts trips to big memories.'
+    },
+    'global-buffer': {
+      t: 'Global buffer',
+      d: 'A large on-chip SRAM (tens to hundreds of kilobytes) shared by all processing elements. It sits between DRAM and the PE array.'
+    },
+    'weight-stationary': {
+      t: 'Weight stationary (WS)',
+      d: 'A dataflow that keeps each weight in the PE\'s register file and streams the other data past it, to reuse the weight as often as possible.'
+    },
+    'output-stationary': {
+      t: 'Output stationary (OS)',
+      d: 'A dataflow that keeps each partial sum in the PE until the output value is finished, so partial sums never travel to a bigger memory.'
+    },
+    'no-local-reuse': {
+      t: 'No local reuse (NLR)',
+      d: 'A dataflow with no register file in the PEs. All data goes through the global buffer, which is spent on reuse instead.'
+    },
+    'row-stationary': {
+      t: 'Row stationary (RS)',
+      d: 'The dataflow proposed in Paper 4 (Eyeriss). Each PE handles one row of a filter against one row of the input, which keeps all three kinds of data local at once.'
+    },
+    'convolutional-reuse': {
+      t: 'Convolutional reuse',
+      d: 'Data reuse inside one convolution: each weight is applied at many positions, and each input value is seen by many overlapping windows.'
+    },
+    'filter-reuse': {
+      t: 'Filter reuse',
+      d: 'Reusing the same filter weights for several inputs in a batch.'
+    },
+    'fmap-reuse': {
+      t: 'Input feature map reuse',
+      d: 'Reusing the same input values for several different filters in the same layer.'
+    },
+    depthwise: {
+      t: 'Depthwise convolution',
+      d: 'A convolution that applies one R x S filter to each input channel separately, with no mixing across channels.'
+    },
+    pointwise: {
+      t: 'Pointwise (1 x 1) convolution',
+      d: 'A convolution with a 1 x 1 filter. It mixes channels at each position and does no spatial filtering.'
     }
   };
 })();

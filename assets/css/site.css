@@ -1885,6 +1885,7 @@ button.term:hover {
 .cgrid .cell.cur {
   background: var(--accent);
   border-color: var(--accent-2);
+  color: var(--accent-ink);
 }
 @media (max-width: 640px) {
   .cgrid .cell {
@@ -1988,4 +1989,15 @@ button.term:hover {
 .rfchart .ptlab {
   font-weight: 700;
   fill: var(--ink);
+}
+.cgrid.small .cell {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+@media (max-width: 640px) {
+  .cgrid.small .cell {
+    width: 15px;
+    height: 15px;
+  }
 }
