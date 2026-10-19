@@ -4,6 +4,8 @@
  *   convShape   calculator for the shape, size, MACs and reuse of one convolution layer
  *   convWindow  a filter sliding over a small image, with the reuse counts that follow
  *   hierEnergy  energy per MAC as a mix of accesses at four levels of the memory hierarchy
+ *   rooflineBasic  the Roofline chart for one machine, with a kernel you can move
+ * Also exports MLS.hw.drawRoofline(host, spec) for lessons that build their own roofline widgets.
  * Load after engine.js and hw.js. Each lesson tags these widgets itself (paper, original or toy).
  */
 (function () {
@@ -328,6 +330,197 @@
     host.appendChild(h('div.meters', LEVELS.map(function (lv) { return bars[lv.k].el; })));
     host.appendChild(message.el);
     host.appendChild(note(opts.footnote || 'Cost ratios: register file 1x, neighbor PE 2x, global buffer 6x, DRAM 200x, each relative to one MAC. The access mixes are ours and only illustrate the effect.'));
+    paint();
+  };
+
+  /* ======================================================================
+   * Roofline chart renderer
+   *   spec: { xmin, xmax, ymin, ymax, xLabel?, yLabel?, ariaLabel?, minWidth?,
+   *           machines: [{ label, peak, bw, ceilings?: [{ label, peak?, bw? }] }],
+   *           points: [{ label, oi, machine? }] }
+   *   Units: peak in G-ops per second, bw in GB per second, oi in operations per byte.
+   *   Attainable performance = min(peak, bw x oi).
+   * ==================================================================== */
+  var rfId = 0;
+  hw.attainable = function (machine, oi) {
+    return Math.min(machine.peak, machine.bw * oi);
+  };
+  hw.drawRoofline = function (host, spec) {
+    var s = MLS.s;
+    var id = 'rf' + ++rfId;
+    var W = spec.width || 640;
+    var H = spec.height || 340;
+    var m = { l: 82, r: 20, t: 14, b: 48 };
+    var pw = W - m.l - m.r;
+    var ph = H - m.t - m.b;
+    var lx0 = Math.log10(spec.xmin);
+    var lx1 = Math.log10(spec.xmax);
+    var ly0 = Math.log10(spec.ymin);
+    var ly1 = Math.log10(spec.ymax);
+    function X(v) { return m.l + ((Math.log10(v) - lx0) / (lx1 - lx0)) * pw; }
+    function Y(v) { return m.t + ph - ((Math.log10(v) - ly0) / (ly1 - ly0)) * ph; }
+    function fmtTick(v) {
+      if (v >= 1000) return hw.int(v);
+      if (v >= 1) return String(v);
+      return String(Number(v.toPrecision(2)));
+    }
+    var svg = s('svg', { class: 'rfchart', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': spec.ariaLabel || 'Roofline chart', style: 'min-width:' + (spec.minWidth || 560) + 'px' });
+    svg.appendChild(s('defs', s('clipPath', { id: id + '-clip' }, s('rect', { x: m.l, y: m.t, width: pw, height: ph }))));
+    var k;
+    for (k = Math.ceil(lx0); k <= Math.floor(lx1); k++) {
+      var gx = X(Math.pow(10, k));
+      svg.appendChild(s('line', { class: 'grid', x1: gx, y1: m.t, x2: gx, y2: m.t + ph }));
+      svg.appendChild(s('text', { class: 'tick', x: gx, y: m.t + ph + 16, 'text-anchor': 'middle' }, fmtTick(Math.pow(10, k))));
+    }
+    for (k = Math.ceil(ly0); k <= Math.floor(ly1); k++) {
+      var gy = Y(Math.pow(10, k));
+      svg.appendChild(s('line', { class: 'grid', x1: m.l, y1: gy, x2: m.l + pw, y2: gy }));
+      svg.appendChild(s('text', { class: 'tick', x: m.l - 6, y: gy + 4, 'text-anchor': 'end' }, fmtTick(Math.pow(10, k))));
+    }
+    svg.appendChild(s('rect', { class: 'frame', x: m.l, y: m.t, width: pw, height: ph }));
+    svg.appendChild(s('text', { class: 'axis', x: m.l + pw / 2, y: H - 8, 'text-anchor': 'middle' }, spec.xLabel || 'Operational intensity (operations per DRAM byte)'));
+    svg.appendChild(s('text', { class: 'axis', transform: 'translate(14 ' + (m.t + ph / 2) + ') rotate(-90)', 'text-anchor': 'middle' }, spec.yLabel || 'Attainable performance (G operations per second)'));
+
+    var layer = s('g', { 'clip-path': 'url(#' + id + '-clip)' });
+    function roofPath(peak, bw) {
+      var ridge = peak / bw;
+      var x0 = spec.xmin;
+      var x1 = spec.xmax;
+      var d = 'M' + X(x0) + ' ' + Y(Math.min(peak, bw * x0));
+      if (ridge > x0 && ridge < x1) d += ' L' + X(ridge) + ' ' + Y(peak);
+      d += ' L' + X(x1) + ' ' + Y(Math.min(peak, bw * x1));
+      return d;
+    }
+    spec.machines.forEach(function (mc, i) {
+      (mc.ceilings || []).forEach(function (c) {
+        layer.appendChild(s('path', { class: 'ceil', d: roofPath(c.peak || mc.peak, c.bw || mc.bw) }));
+      });
+    });
+    spec.machines.forEach(function (mc, i) {
+      layer.appendChild(s('path', { class: 'roof r' + (i % 3), d: roofPath(mc.peak, mc.bw) }));
+    });
+    svg.appendChild(layer);
+
+    spec.machines.forEach(function (mc, i) {
+      (mc.ceilings || []).forEach(function (c) {
+        if (!c.label) return;
+        var cp = c.peak || mc.peak;
+        var cb = c.bw || mc.bw;
+        var xr = spec.xmax / 1.15;
+        var xl = Math.min(xr, Math.max(spec.xmin * 1.2, (cp / cb) * 1.6));
+        var onFlat = !!c.peak;
+        var tx = onFlat ? spec.xmax / 1.1 : spec.xmin * 1.35;
+        var ty = onFlat ? cp : cb * tx;
+        svg.appendChild(s('text', { class: 'ceillab', x: onFlat ? X(tx) : X(tx) + 4, y: Y(ty) - (onFlat ? 4 : 8), 'text-anchor': onFlat ? 'end' : 'start' }, c.label));
+      });
+      var ridge = mc.peak / mc.bw;
+      if (ridge > spec.xmin && ridge < spec.xmax) {
+        svg.appendChild(s('line', { class: 'ridge', x1: X(ridge), y1: Y(mc.peak), x2: X(ridge), y2: m.t + ph }));
+        svg.appendChild(s('text', { class: 'ridgelab', x: X(ridge) + 4, y: m.t + ph - 6 }, 'ridge ' + (ridge >= 10 ? hw.int(ridge) : fmt(ridge, 1))));
+      }
+      if (spec.machines.length > 1) svg.appendChild(s('text', { class: 'mlab r' + (i % 3), x: m.l + 8, y: m.t + 16 + i * 15 }, mc.label));
+    });
+
+    /* Labels go where they do not cover an earlier label: try several spots around each point. */
+    var placed = [];
+    (spec.points || []).forEach(function (pt) {
+      var mc = spec.machines[pt.machine || 0];
+      var px = X(pt.oi);
+      var py = Y(hw.attainable(mc, pt.oi));
+      placed.push({ x0: px - 9, x1: px + 9, y0: py - 9, y1: py + 9 });
+    });
+    function overlaps(r) {
+      for (var j = 0; j < placed.length; j++) {
+        var q = placed[j];
+        if (r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0) return true;
+      }
+      return false;
+    }
+    (spec.points || []).forEach(function (pt, i) {
+      var mc = spec.machines[pt.machine || 0];
+      var att = hw.attainable(mc, pt.oi);
+      var bound = pt.oi < mc.peak / mc.bw ? 'mem' : 'cmp';
+      var cx = X(pt.oi);
+      var cy = Y(att);
+      svg.appendChild(s('line', { class: 'drop', x1: cx, y1: cy, x2: cx, y2: m.t + ph }));
+      svg.appendChild(s('circle', { class: 'pt ' + bound, cx: cx, cy: cy, r: 6 }));
+      var w = pt.label.length * 6.4 + 4;
+      var spots = [[1, -9], [-1, 17], [1, 17], [-1, -9], [1, -26], [-1, 34], [1, 36], [-1, -26], [1, -43], [-1, 51]];
+      var chosen = null;
+      for (var k = 0; k < spots.length && !chosen; k++) {
+        var side = spots[k][0];
+        var dy = spots[k][1];
+        var x0 = side > 0 ? cx + 9 : cx - 9 - w;
+        var rect = { x0: x0, x1: x0 + w, y0: cy + dy - 12, y1: cy + dy + 4 };
+        if (rect.x0 < m.l + 2 || rect.x1 > m.l + pw - 2 || rect.y0 < m.t || rect.y1 > m.t + ph) continue;
+        if (!overlaps(rect)) chosen = { side: side, dy: dy, rect: rect };
+      }
+      if (!chosen) chosen = { side: cx < m.l + pw / 2 ? 1 : -1, dy: -9, rect: { x0: cx, x1: cx + w, y0: cy - 21, y1: cy - 5 } };
+      placed.push(chosen.rect);
+      svg.appendChild(s('text', { class: 'ptlab', x: cx + (chosen.side > 0 ? 9 : -9), y: cy + chosen.dy, 'text-anchor': chosen.side > 0 ? 'start' : 'end' }, pt.label));
+    });
+    host.appendChild(h('div.rfwrap', svg));
+    return svg;
+  };
+
+  /* ======================================================================
+   * rooflineBasic: one machine, a few named kernels, and one kernel you can move
+   *   opts: { kernels?: [{ label, oi }], peak?: G-ops/s, bw?: GB/s }
+   * ==================================================================== */
+  MLS.widgets.rooflineBasic = function (host, opts) {
+    var PEAKS = [25, 50, 100, 200, 400, 800];
+    var BWS = [5, 10, 25, 50, 100, 200];
+    var OIS = [1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2, 4, 8, 16, 32, 64, 128, 256];
+    function oiLabel(v) { return v < 1 ? '1/' + Math.round(1 / v) : String(v); }
+    var cfg = { p: PEAKS.indexOf(opts.peak || 100), b: BWS.indexOf(opts.bw || 25), o: 4 };
+    var chartHost = h('div');
+    var statRidge = ui.stat('Ridge point', 'ops per byte');
+    var statAtt = ui.stat('Your kernel can reach', 'G ops/s');
+    var statPct = ui.stat('Share of peak', '');
+    var statBound = ui.stat('Limited by', '');
+    var message = ui.msg('');
+    var kernels = opts.kernels || [{ label: 'Vector add', oi: 1 / 12 }, { label: 'Tiled matrix multiply', oi: 32 }];
+
+    function paint() {
+      var peak = PEAKS[cfg.p];
+      var bw = BWS[cfg.b];
+      var oi = OIS[cfg.o];
+      var mc = { label: 'Machine', peak: peak, bw: bw };
+      var att = hw.attainable(mc, oi);
+      var ridge = peak / bw;
+      var memBound = oi < ridge;
+      chartHost.innerHTML = '';
+      var pts = kernels.map(function (k) { return { label: k.label, oi: k.oi }; });
+      pts.push({ label: 'Your kernel', oi: oi });
+      hw.drawRoofline(chartHost, {
+        xmin: 1 / 32,
+        xmax: 512,
+        ymin: 1,
+        ymax: 1000,
+        machines: [mc],
+        points: pts,
+        ariaLabel: 'Roofline for a machine with peak ' + peak + ' G operations per second and bandwidth ' + bw + ' GB per second'
+      });
+      statRidge.set(fmt(ridge, ridge < 10 ? 1 : 0));
+      statAtt.set(fmt(att, att < 10 ? 1 : 0), memBound ? 'warn' : 'good');
+      statPct.set(fmt((att / peak) * 100, 0) + '%', att / peak < 0.5 ? 'bad' : 'good');
+      statBound.set(memBound ? 'Memory' : 'Compute', memBound ? 'warn' : 'good');
+      message.set(
+        memBound
+          ? 'Your kernel does **' + oiLabel(oi) + '** operations per DRAM byte, left of the ridge at **' + fmt(ridge, 1) + '**. The memory system can only feed it ' + fmt(att, 1) + ' G ops/s, which is ' + fmt((att / peak) * 100, 0) + '% of peak. More arithmetic units would not help. More reuse or more bandwidth would.'
+          : 'Your kernel does **' + oiLabel(oi) + '** operations per DRAM byte, right of the ridge at **' + fmt(ridge, 1) + '**. Memory keeps up, so the arithmetic units set the limit: ' + fmt(att, 0) + ' G ops/s, full peak. More bandwidth would not help.',
+        memBound ? 'warn' : 'good'
+      );
+    }
+    var pSl = ui.slider({ label: 'Peak compute', min: 0, max: PEAKS.length - 1, value: cfg.p, format: function (v) { return PEAKS[v] + ' G ops/s'; }, onInput: function (v) { cfg.p = v; paint(); } });
+    var bSl = ui.slider({ label: 'Memory bandwidth', min: 0, max: BWS.length - 1, value: cfg.b, format: function (v) { return BWS[v] + ' GB/s'; }, onInput: function (v) { cfg.b = v; paint(); } });
+    var oSl = ui.slider({ label: 'Operational intensity of your kernel', min: 0, max: OIS.length - 1, value: cfg.o, format: function (v) { return oiLabel(OIS[v]) + ' ops/byte'; }, onInput: function (v) { cfg.o = v; paint(); } });
+    host.appendChild(h('p', { html: MLS.rich('The slanted line is what memory can feed. The flat line is what the arithmetic units can do. A kernel can reach whichever is lower. Both axes are logarithmic, so each gridline is ten times the last.') }));
+    host.appendChild(h('div.controls', pSl.el, bSl.el, oSl.el));
+    host.appendChild(chartHost);
+    host.appendChild(h('div.readout', statRidge.el, statAtt.el, statPct.el, statBound.el));
+    host.appendChild(message.el);
+    host.appendChild(note(opts.footnote || 'Toy machine for teaching. The two named kernels use our own operation and byte counts (vector add: 1 operation per 12 bytes of 32-bit values, tiled matrix multiply: an operational intensity of 32 is typical of a good tile). They are not measurements.'));
     paint();
   };
 })();
