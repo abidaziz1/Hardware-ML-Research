@@ -1,61 +1,85 @@
-# Hardware-ML-Research: Computer Architecture for AI + Hardware/Software Co-Design
+# Hardware ML Course: Interactive Paper Lessons
 
-## Core Sub-Areas to Watch
-- Memory / Data Movement
-- Dataflow
-- Accelerators
-- Efficient Inference
-- Mapping / Runtime
+Learn 24 papers on **computer architecture for AI and hardware/software co-design**. Each paper is an interactive lesson. You read one part, press **Next**, try a simulation, check yourself with a quiz, and move on. Every lesson ends with **practice problems** (simple, medium and hard) whose solutions stay hidden until you open them.
 
-## Interactive Tutorials Progress
-| Tutorial | Path | Status |
-| --- | --- | --- |
-| Paper 3: Roofline Model | [tutorials/03-roofline/README.md](tutorials/03-roofline/README.md) | Completed |
+Sub-areas: memory and data movement, dataflow, accelerators, efficient inference, mapping and runtime.
 
-## Top 10 Initial Reading List
-1. Horowitz 2014 - Computing's Energy Problem
-2. Sze et al. 2017 - Efficient Processing of Deep Neural Networks: A Tutorial and Survey
-3. Roofline 2009 - Roofline: An Insightful Visual Performance Model for Multicore Architectures
-4. Eyeriss 2016 - Eyeriss: An Energy-Efficient Reconfigurable Accelerator for Deep Convolutional Neural Networks
-5. TPU 2017 - In-Datacenter Performance Analysis of a Tensor Processing Unit
-6. Timeloop 2019 - Timeloop: A Systematic Approach to DNN Accelerator Evaluation
-7. MAESTRO 2019 - MAESTRO: An Open-source Infrastructure for Modeling Dataflow Hardware Evaluation
-8. MCUNet 2020 - MCUNet: Tiny Deep Learning on IoT Devices
-9. MCUNetV2 2021 - MCUNetV2: Memory-Efficient Patch-based Inference for Tiny Deep Learning
-10. FlashAttention 2022 - FlashAttention: Fast and Memory-Efficient Exact Attention with IO-Awareness
+## Start here
 
-## Complete 24-Paper Reading List
+Open `index.html` in a browser. No install, no build step, no server needed. Then open **Paper 1: Horowitz**.
 
-### Tier 1: Mandatory (Papers 1–12)
-1. Horowitz 2014
-2. Sze et al. 2017
-3. Roofline 2009 (Williams, Waterman & Patterson)
-4. Eyeriss 2016
-5. TPU 2017
-6. Timeloop 2019
-7. MAESTRO 2019
-8. MCUNet 2020
-9. MCUNetV2 2021
-10. FlashAttention 2022
-11. DianNao 2014
-12. TPUv4 2021
+To serve it locally instead:
 
-### Tier 2: Hardware/Software Co-design and Edge AI (Papers 13–17)
-13. EIE 2016
-14. MAERI 2018
-15. NetAdapt 2019
-16. On-Device Training 2022
-17. FlashAttention-2 2023
+```
+python3 -m http.server 8000
+```
 
-### Tier 3: Modern AI Architecture (Papers 18–20)
-18. PagedAttention / vLLM 2023
-19. TGI / Inference Serving 2023
-20. Mamba / State Space Models 2024
+To publish it, enable GitHub Pages (Settings, Pages, deploy from branch, root folder). The site is plain files, so it works as is. Note that GitHub Pages on a private repository needs a paid plan.
 
-### Tier 4: Large-Scale Architecture (Papers 21–22)
-21. NVIDIA Hopper 2022
-22. Google TPU v5p & Trillium 2024
+## What a lesson looks like
 
-### Tier 5: 2026 Frontier (Papers 23–24)
-23. DIAMoND ISCA 2026
-24. MoEBlaze MLSys 2026
+1. **A real-life example first.** You meet the idea in a kitchen, a warehouse or a road trip before you see the paper's term for it.
+2. **The paper's term and what the paper says.** A purple "In the paper" box separates the authors' claims from our explanation.
+3. **Something to play with.** Sliders, step-through diagrams and small models of the hardware.
+4. **A check.** Predict-first questions, quizzes with a reason for every wrong answer, and a final quiz that tells you which parts to revisit.
+5. **A reading map.** Which sections of the real paper to read closely, which to skim, and reading tasks to do while you read.
+6. **Practice.** Simple, medium and hard problems with hints and full solutions that you reveal only when you want them.
+
+Every figure, table and widget carries a tag: **From the paper**, **Redrawn from the paper**, **Original diagram**, or **Toy model, not from the paper**. You can always tell the authors' data from our teaching aids.
+
+Progress is saved in your browser only. Nothing is uploaded.
+
+## The reading list
+
+| Status | Papers |
+|---|---|
+| Ready | 1. Horowitz (ISSCC 2014), 2. Sze survey (Proc. IEEE 2017), 3. Roofline (CACM 2009), 4. Eyeriss (ISCA 2016), 5. TPU (ISCA 2017) |
+| Planned, Tier 1 | 6. EIE, 7. SCNN, 8. Timeloop, 9. MAESTRO, 10. Accelergy, 11. TOPS/W considered harmful, 12. TETRIS |
+| Planned, Tier 2 | 13. HAQ, 14. Once-for-All, 15. MCUNet, 16. MCUNetV2, 17. FINN |
+| Planned, Tier 3 | 18. FlashAttention, 19. PagedAttention, 20. LLMCompass |
+| Planned, Tier 4 | 21. TPU v4, 22. FlexGen |
+| Planned, Tier 5 | 23. DIAMoND (ISCA 2026), 24. MoEBlaze (MLSys 2026) |
+
+The full list with authors and venues lives in `assets/js/catalog.js`. The "Starter 10" filter on the home page marks the ten papers to read first: Horowitz, Sze, Roofline, Eyeriss, TPU, Timeloop, MAESTRO, MCUNet, MCUNetV2 and FlashAttention.
+
+## Repository layout
+
+```
+index.html                 course home page (reads assets/js/catalog.js)
+assets/
+  css/site.css             all styles, light and dark themes
+  js/core.js               DOM, markup, storage helpers
+  js/graphkit.js           draws small directed graphs as SVG
+  js/ui.js                 sliders, segmented buttons, stat boxes
+  js/engine.js             the lesson player and every block type (including practice problems)
+  js/glossary-common.js    terms shared by all lessons
+  js/catalog.js            the 24-paper reading list
+papers/
+  NN-short-name/           one folder per paper: lesson text, widgets, glossary, VERIFY.md
+  _template/               copy this to start a new paper
+docs/AUTHORING.md          how to write the next lesson
+tests/smoke.cjs            browser test for every lesson
+```
+
+## Writing the next lesson
+
+Read [docs/AUTHORING.md](docs/AUTHORING.md). In short: copy `papers/_template`, fill in the parts, register the paper in `assets/js/catalog.js`, and run the smoke test.
+
+## Testing
+
+The smoke test opens each lesson in headless Chromium, walks every step, answers every quiz, types the correct answer into every practice problem that has a numeric check (and a wrong one, to confirm it is refused), and fails on console errors, missing glossary terms or sideways scrolling on a phone.
+
+```
+npm install
+npm test                       # all lessons, desktop width
+MOBILE=1 npm test              # phone width
+SHOTS=/tmp/shots npm test      # also save a screenshot of every step
+```
+
+## A note on accuracy
+
+Each lesson ships a `VERIFY.md` that lists the facts to check against the original PDF: every number, section reference and paraphrase, plus the scripts that produced the practice answers. Read the original paper too. The lesson is a guide to the paper, not a replacement for it.
+
+## History
+
+This repository previously held a short text note on the Roofline model. That content is in the git history before the interactive course was added.
