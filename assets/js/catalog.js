@@ -31,7 +31,7 @@
     { n: 3, tier: 't1', f: 'memory', starter: true, title: 'Roofline: An Insightful Visual Performance Model for Multicore Architectures', authors: 'Williams, Waterman, Patterson', venue: 'CACM 2009', id: 'roofline-cacm09', lesson: 'papers/03-roofline/' },
     { n: 4, tier: 't1', f: 'dataflow', starter: true, title: 'Eyeriss: A Spatial Architecture for Energy-Efficient Dataflow for Convolutional Neural Networks', authors: 'Chen, Emer, Sze', venue: 'ISCA 2016', id: 'eyeriss-isca16', lesson: 'papers/04-eyeriss/' },
     { n: 5, tier: 't1', f: 'accel', starter: true, title: 'In-Datacenter Performance Analysis of a Tensor Processing Unit', authors: 'Jouppi et al.', venue: 'ISCA 2017', id: 'tpu-isca17', lesson: 'papers/05-tpu/' },
-    { n: 6, tier: 't1', f: 'inference', title: 'EIE: Efficient Inference Engine on Compressed Deep Neural Network', authors: 'Han et al.', venue: 'ISCA 2016' },
+    { n: 6, tier: 't1', f: 'inference', title: 'EIE: Efficient Inference Engine on Compressed Deep Neural Network', authors: 'Han et al.', venue: 'ISCA 2016', id: 'eie-isca16', lesson: 'papers/06-eie/' },
     { n: 7, tier: 't1', f: 'dataflow', title: 'SCNN: An Accelerator for Compressed-Sparse Convolutional Neural Networks', authors: 'Parashar et al.', venue: 'ISCA 2017' },
     { n: 8, tier: 't1', f: 'mapping', starter: true, title: 'Timeloop: A Systematic Approach to DNN Accelerator Evaluation', authors: 'Parashar et al.', venue: 'ISPASS 2019' },
     { n: 9, tier: 't1', f: 'mapping', starter: true, title: 'MAESTRO: A Data-Centric Approach to Understand Reuse, Performance, and Hardware Cost of DNN Mappings', authors: 'Kwon et al.', venue: 'MICRO 2019' },
