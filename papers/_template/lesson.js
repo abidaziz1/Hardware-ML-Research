@@ -29,6 +29,7 @@ MLS.start({
           title: 'Welcome',
           min: 2,
           blocks: [
+            { t: 'p', hook: true, text: 'A question or a situation, in one or two short sentences. Use hook: true for the opening of a step.' },
             { t: 'p', lead: true, text: 'One plain sentence on what the paper does. Strings in a blocks list are paragraphs too.' },
             'A plain string is shorthand for a paragraph. Inline markup: **bold**, `code`, __emphasis__, [a link](https://example.com), and a glossary term like {{example}}.',
             { t: 'facts', rows: [['Paper', 'Title'], ['Authors', 'Names'], ['Venue', 'Conference and year']] },
@@ -58,7 +59,11 @@ MLS.start({
             { t: 'table', head: ['Column A', 'Column B'], rows: [['one', 'two'], ['three', 'four']], source: 'paper', caption: 'Tag every table: paper, redrawn, toy or original.' },
             { t: 'code', code: '# Python is colorized\ndef add(a, b):\n    return a + b', caption: 'A code example.' },
             { t: 'compare', left: { title: 'Before', body: ['The old way.'] }, right: { title: 'After', body: ['The new way.'] } },
-            { t: 'reveal', label: 'Show the answer', body: ['Hidden content that appears on click.'] }
+            { t: 'reveal', label: 'Show the answer', body: ['Hidden content that appears on click.'] },
+            { t: 'reveal', tone: 'more', label: 'More detail: for the curious', body: ['Optional depth, collapsed so the main flow stays short.'] },
+            { t: 'reveal', tone: 'check', label: 'Check this against the paper', body: ['Facts you could not verify, as reading tasks.'] },
+            { t: 'chat', open: 'Optional first line from the tutor.', turns: [{ q: 'A question a beginner would really ask?', a: 'A one to three sentence answer.' }, { q: 'And the follow-up?', a: 'Another short answer. The reader clicks to ask each question.' }], after: [{ t: 'takeaway', text: 'Blocks in after appear once the last answer is shown. Put the takeaway here so it does not spoil the questions.' }] },
+            { t: 'takeaway', text: 'The one sentence a reader should be able to say out loud after this step.' }
           ]
         },
         {

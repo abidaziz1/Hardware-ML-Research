@@ -41,16 +41,19 @@ async function testLesson(browser, folder) {
   let minutes = 0;
   let quizzes = 0;
   let practiceChecked = 0;
+  let chats = 0;
 
   for (let i = 0; i < total; i++) {
     const info = await page.evaluate((idx) => {
       const f = MLS.player.flat[idx];
       const quizSpecs = [];
       const practiceSpecs = [];
+      const chatSpecs = [];
       (function walk(blocks) {
         (blocks || []).forEach((b) => {
           if (!b || typeof b === 'string') return;
           if (b.t === 'quiz') quizSpecs.push({ answer: b.answer, n: b.options.length });
+          if (b.t === 'chat') chatSpecs.push({ turns: b.turns.length, open: !!b.open });
           if (b.t === 'practice') b.problems.forEach((pr) => practiceSpecs.push({ level: pr.level, check: pr.check || null, hasSolution: !!pr.solution }));
           if (Array.isArray(b.body)) walk(b.body);
           if (b.tabs) b.tabs.forEach((t) => walk(t.body));
@@ -58,7 +61,7 @@ async function testLesson(browser, folder) {
           if (b.right) walk(b.right.body);
         });
       })(f.step.blocks);
-      return { title: f.step.title, min: f.step.min || 0, part: f.part.id, quizSpecs, practiceSpecs };
+      return { title: f.step.title, min: f.step.min || 0, part: f.part.id, quizSpecs, practiceSpecs, chatSpecs };
     }, i);
     minutes += info.min;
     const label = `step ${i + 1}/${total} "${info.title}"`;
@@ -90,6 +93,29 @@ async function testLesson(browser, folder) {
       const ok = await quizEls[q].$('.feedback.ok');
       if (!ok) problems.push(`${label}: quiz ${q} did not accept the correct answer`);
       quizzes++;
+    }
+
+    // Chats: ask every question in order and check that each one adds a question and an answer.
+    const chatEls = await page.$$('.chat');
+    if (chatEls.length !== info.chatSpecs.length) problems.push(`${label}: ${chatEls.length} chat blocks, expected ${info.chatSpecs.length}`);
+    for (let c = 0; c < chatEls.length && c < info.chatSpecs.length; c++) {
+      const spec = info.chatSpecs[c];
+      const afterEl = await page.$('.chatwrap > .chatafter');
+      if (afterEl && (await afterEl.isVisible())) problems.push(`${label}: chat ${c} shows its closing blocks before the last answer`);
+      for (let k = 0; k < spec.turns; k++) {
+        const ask = await chatEls[c].$('.askbtn');
+        if (!ask) {
+          problems.push(`${label}: chat ${c} ran out of questions after ${k} of ${spec.turns}`);
+          break;
+        }
+        await ask.click();
+      }
+      const bubbles = (await chatEls[c].$$('.bubble')).length;
+      const expected = spec.turns * 2 + (spec.open ? 1 : 0);
+      if (bubbles !== expected) problems.push(`${label}: chat ${c} shows ${bubbles} bubbles, expected ${expected}`);
+      if (await chatEls[c].$('.askbtn')) problems.push(`${label}: chat ${c} still offers a question after the last turn`);
+      if (afterEl && !(await afterEl.isVisible())) problems.push(`${label}: chat ${c} did not show its closing blocks after the last answer`);
+      chats++;
     }
 
     // Practice problems: check that a wrong answer is refused, the right answer is accepted,
@@ -134,6 +160,9 @@ async function testLesson(browser, folder) {
       if (await tab.isVisible()) await tab.click();
     }
 
+    // Open every hidden detail so the overflow check below sees the longest version of the page.
+    await page.$$eval('details.reveal', (els) => els.forEach((d) => { d.open = true; }));
+
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     if (overflow > 2) problems.push(`${label}: page scrolls sideways by ${overflow}px`);
 
@@ -145,7 +174,7 @@ async function testLesson(browser, folder) {
     if (i < total - 1) await page.click('.pager .btn.primary');
   }
 
-  console.log(`${folder}: ${total} steps, ${quizzes} quizzes answered, ${practiceChecked} practice answers checked, about ${minutes} minutes of content, viewport ${viewport.width}px`);
+  console.log(`${folder}: ${total} steps, ${quizzes} quizzes answered, ${practiceChecked} practice answers checked, ${chats} chats clicked through, about ${minutes} minutes of content, viewport ${viewport.width}px`);
   await ctx.close();
   return problems;
 }

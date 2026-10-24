@@ -1,6 +1,6 @@
 # Authoring a lesson
 
-This guide shows how to turn the next paper into a lesson. Paper 1 (`papers/01-horowitz/`) is the worked example. Read its `lesson-1.js` next to this guide.
+This guide shows how to turn the next paper into a lesson. Paper 1 (`papers/01-horowitz/`) is the worked example of the engine. For how to write the text, read `docs/STYLE.md` first and follow `papers/06-eie/` (the first lesson in the short, plain-language format).
 
 ## Quick start
 
@@ -29,7 +29,7 @@ Give every part and step a unique, stable `id`. The page address uses them (`#da
 | `t` | What it does | Main fields |
 |---|---|---|
 | string | A paragraph | the string |
-| `p` | Paragraph, optionally `lead: true` for larger text | `text` |
+| `p` | Paragraph. `hook: true` for the big opening question of a step, `lead: true` for slightly larger text | `text` |
 | `h` | Sub heading | `text` |
 | `list` | Bullets or numbers | `items[]`, `ordered` |
 | `callout` | A colored box | `kind`, `title?`, `body` (string or blocks) |
@@ -40,7 +40,9 @@ Give every part and step a unique, stable `id`. The page address uses them (`#da
 | `flip` | Cards that flip on click | `cards[{front, back}]` |
 | `tabs` | Tabbed content | `tabs[{label, body[]}]` |
 | `compare` | Two columns, before and after | `left`, `right` |
-| `reveal` | Hidden answer | `label`, `body[]` |
+| `reveal` | Collapsed text. `tone: 'more'` for optional detail, `tone: 'check'` for "check this against the paper" | `label`, `body[]`, `tone?` |
+| `takeaway` | The one sentence to remember, in a colored box | `text`, `label?` |
+| `chat` | A short Q&A the reader steps through by clicking each question. `after` blocks (such as the takeaway) appear once the last answer is shown | `open?`, `turns[{q, a}]`, `after?[]` |
 | `walk` | Step-through of a graph | `graph`, `frames[]` |
 | `quiz` | One question, instant feedback | `id`, `q`, `options[]`, `answer`, `whyNot[]`, `explain`, `kind: 'predict'` |
 | `widget` | A paper-specific interactive | `name`, `title`, `tag`, `opts` |
@@ -81,15 +83,15 @@ Build controls with `MLS.ui` (`slider`, `seg`, `stat`, `msg`, `meterRow`, `btn`)
 
 ## How to teach a step
 
-Use this order inside a step. It works for undergrads who know the basics but not the field.
+`docs/STYLE.md` has the full recipe and the budgets. In short, every step has this order:
 
-1. **Real-life example first.** A concrete scene (a kitchen, a library, a bakery). Put it before the paper's term.
-2. **The term and the idea.** One short paragraph. Link jargon to the glossary.
-3. **Something to do.** A widget or walkthrough. Add a `try` callout with numbered tasks.
-4. **A check.** A predict-first quiz before the reveal, or a quiz after. Explain every wrong answer.
-5. **What the paper says.** A purple `paper` callout, with the section name.
+1. **A hook:** one or two short sentences with a situation or a question (`p` with `hook: true`).
+2. **A real-life example** that carries the idea. The paper's term comes after the reader can already do the thing.
+3. **One thing to touch:** a widget, a walkthrough, a figure or a chat.
+4. **A takeaway:** one sentence (`takeaway`).
+5. **Optional:** a predict-first quiz, and collapsed `reveal` blocks for detail and for "check this against the paper".
 
-Also: ask a question before you answer it. Keep paragraphs to about 4 lines. Let students fail safely: a wrong answer should explain, not scold.
+Keep a step under about 150 visible words. Run `node tests/density.cjs papers/NN-name` to measure. Let students fail safely: a wrong answer should explain, not scold.
 
 ## Accuracy
 
@@ -105,6 +107,8 @@ Students will quote your lessons, so treat them like a citation.
 - **Mark later work as later.** Anything not in the paper (what happened afterward, other papers) goes in a clearly labeled step or callout.
 
 ## Writing style
+
+`docs/STYLE.md` sets the budgets (words, sentence length, terms and boxes per step). The rules below still apply.
 
 - Clear, direct language. Active voice. Short sentences mixed with longer ones.
 - Speak to the student as "you".
@@ -147,7 +151,7 @@ Rules:
 - **Hide the answer.** The Check button only says Correct or Not yet. It never shows the answer. The hint and the solution sit inside closed `details` elements.
 - **Verify every answer by script.** Compute each `check.answer` with a short script, not by hand, and keep the script's output next to the lesson (see the lesson's `VERIFY.md`). `tol` is a relative tolerance (default 0.02). Use `abs` for answers near zero.
 - **Not every problem needs a number.** For design and explanation problems, leave out `check` and write the solution as a model answer with the key points.
-- **Explain the method in the solution,** not only the result, and say which common mistake the wrong answers usually come from.
+- **Show the method in the solution** as well as the result, and say which common mistake the wrong answers usually come from.
 
 ## Testing
 
@@ -155,6 +159,9 @@ Rules:
 node tests/smoke.cjs papers/NN-short-name
 MOBILE=1 node tests/smoke.cjs papers/NN-short-name
 SHOTS=/tmp/shots node tests/smoke.cjs papers/NN-short-name
+node tests/density.cjs papers/NN-short-name      # reading load against the budgets in docs/STYLE.md
 ```
+
+The smoke test also clicks through every `chat` block and opens every collapsed `reveal`.
 
 The test fails on console errors, an unknown block or widget, an undefined glossary key, a quiz that rejects its own correct answer, and sideways page scrolling. Open a few screenshots and look at them yourself. A passing test does not mean a good diagram.

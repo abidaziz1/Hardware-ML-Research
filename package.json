@@ -5,7 +5,8 @@
   "description": "Interactive lessons for 24 papers on computer architecture for AI and hardware/software co-design. Plain HTML, CSS and JavaScript. No build step.",
   "scripts": {
     "start": "python3 -m http.server 8000",
-    "test": "node tests/smoke.cjs"
+    "test": "node tests/smoke.cjs",
+    "density": "node tests/density.cjs"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

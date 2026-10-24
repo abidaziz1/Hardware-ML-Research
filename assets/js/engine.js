@@ -64,7 +64,7 @@
   }
 
   blocks.p = function (spec) {
-    return h('p' + (spec.lead ? '.lead' : ''), { html: rich(spec.text) });
+    return h('p' + (spec.hook ? '.hook' : spec.lead ? '.lead' : ''), { html: rich(spec.text) });
   };
   blocks.h = function (spec) {
     return h('h2.sub', { html: rich(spec.text) });
@@ -133,8 +133,56 @@
     return wrap;
   };
 
+  /* tone: 'more' for optional detail, 'check' for "check this against the paper" notes. */
   blocks.reveal = function (spec, ctx) {
-    return h('details.reveal', h('summary', spec.label || 'Show the answer'), body(spec.body, ctx));
+    return h('details.reveal' + (spec.tone ? '.' + spec.tone : ''), h('summary', spec.label || 'Show the answer'), body(spec.body, ctx));
+  };
+
+  /* One sentence the reader should carry out of the step. */
+  blocks.takeaway = function (spec) {
+    return h('div.takeaway', h('div.tkl', spec.label || 'In one sentence'), h('p', { html: rich(spec.text) }));
+  };
+
+  /* A short conversation the reader steps through by asking each question in turn:
+   *   { t: 'chat', open?: 'first line from the tutor', turns: [{ q: 'question', a: 'answer (string or blocks)' }], after?: [blocks] }
+   * The next question is a button. Clicking it adds the question and the answer, then offers the next one.
+   * The optional `after` blocks (for example the takeaway) appear once the last answer is shown. */
+  blocks.chat = function (spec, ctx) {
+    var log = h('div.chatlog', { 'aria-live': 'polite' });
+    var ask = h('div.chatask');
+    var chat = h('div.chat', { role: 'group', 'aria-label': spec.label || 'Conversation' }, log, ask);
+    var after = spec.after ? h('div.chatafter', { hidden: true }, renderBlocks(spec.after, ctx)) : null;
+    var root = after ? h('div.chatwrap', chat, after) : chat;
+    var next = 0;
+    function bubble(who, content) {
+      var b = h('div.bubble.' + who, h('span.sr-only', who === 'you' ? 'You asked: ' : 'Answer: '));
+      if (typeof content === 'string') b.appendChild(h('p', { html: rich(content) }));
+      else b.appendChild(renderBlocks(content, ctx));
+      log.appendChild(b);
+      return b;
+    }
+    function offer(focus) {
+      ask.innerHTML = '';
+      if (next >= spec.turns.length) {
+        chat.classList.add('done');
+        if (after) after.hidden = false;
+        return;
+      }
+      var turn = spec.turns[next];
+      var btn = h('button.askbtn', { type: 'button' }, h('span.askhint', 'Ask'), h('span', { html: rich(turn.q) }));
+      btn.addEventListener('click', function () {
+        bubble('you', turn.q);
+        var reply = bubble('tutor', turn.a);
+        next++;
+        offer(true);
+        reply.scrollIntoView({ block: 'nearest', behavior: MLS.reducedMotion() ? 'auto' : 'smooth' });
+      });
+      ask.appendChild(btn);
+      if (focus) btn.focus({ preventScroll: true });
+    }
+    if (spec.open) bubble('tutor', spec.open);
+    offer(false);
+    return root;
   };
 
   blocks.facts = function (spec) {
